@@ -104,7 +104,7 @@ services:
       - redis-socketio
 
   erpnext-frontend:
-    image: frappe/erpnext:version-15
+    image: frappe/erpnext-nginx:version-15
     container_name: alsakr-erpnext-frontend
     restart: unless-stopped
     environment:

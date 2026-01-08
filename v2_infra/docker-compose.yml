@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # 1. AI & Search Stack
   # ----------------------------------------
@@ -80,7 +78,7 @@ services:
       - industry-net
 
   erpnext-backend:
-    image: frappe/erpnext:v15.8.0
+    image: frappe/erpnext:version-15
     container_name: alsakr-erpnext-backend
     restart: unless-stopped
     deploy:
@@ -106,7 +104,7 @@ services:
       - redis-socketio
 
   erpnext-frontend:
-    image: frappe/erpnext:v15.8.0
+    image: frappe/erpnext:version-15
     container_name: alsakr-erpnext-frontend
     restart: unless-stopped
     command: nginx-entrypoint
@@ -129,7 +127,7 @@ services:
       - erpnext-backend
 
   erpnext-worker-default:
-    image: frappe/erpnext:v15.8.0
+    image: frappe/erpnext:version-15
     container_name: alsakr-erpnext-worker-d
     restart: unless-stopped
     command: worker-default
@@ -149,7 +147,7 @@ services:
       - erpnext-backend
 
   erpnext-schedule:
-    image: frappe/erpnext:v15.8.0
+    image: frappe/erpnext:version-15
     container_name: alsakr-erpnext-schedule
     restart: unless-stopped
     command: schedule

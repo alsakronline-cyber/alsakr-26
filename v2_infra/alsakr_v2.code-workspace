@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"name": "alsakr_v2",
+			"path": ".."
+		},
+		{
+			"name": "frontend",
+			"path": "../../../Downloads/alsakr-online/alsakr_v2/v2_project/frontend"
+		}
+	],
+	"settings": {}
+}

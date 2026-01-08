@@ -1,5 +1,6 @@
 import os
 import logging
+import glob
 from typing import List, Dict, Optional
 from haystack import Pipeline, Document
 from haystack.components.retrievers.in_memory import InMemoryBM25Retriever
@@ -36,7 +37,7 @@ class HaystackPipeline:
         self.rag_pipeline.add_component("llm", OpenAIGenerator(
             api_key=Secret.from_token("ollama"),
             api_base_url=os.getenv("OLLAMA_HOST", "http://localhost:11434") + "/v1",
-            model="mistral"
+            model="llama3.2" 
         ))
         
         self.rag_pipeline.connect("retriever", "prompt_builder.documents")
@@ -50,6 +51,38 @@ class HaystackPipeline:
         return result["llm"]["replies"][0]
 
     def index_data(self, data: List[Dict]):
+        """Index manual list of dicts"""
         docs = [Document(content=d["content"], meta=d["meta"]) for d in data]
         self.document_store.write_documents(docs)
+        return len(docs)
+
+    def index_directory(self, dir_path: str):
+        """Index all .txt and .md files in the directory"""
+        if not os.path.exists(dir_path):
+            logger.warning(f"Directory {dir_path} does not exist.")
+            return 0
+            
+        docs = []
+        # Index Text Files
+        for filepath in glob.glob(os.path.join(dir_path, "**/*.txt"), recursive=True):
+            try:
+                with open(filepath, "r", encoding="utf-8") as f:
+                    content = f.read()
+                    docs.append(Document(content=content, meta={"source": filepath, "type": "text"}))
+            except Exception as e:
+                logger.error(f"Failed to read {filepath}: {e}")
+
+        # Index Markdown Files
+        for filepath in glob.glob(os.path.join(dir_path, "**/*.md"), recursive=True):
+            try:
+                with open(filepath, "r", encoding="utf-8") as f:
+                    content = f.read()
+                    docs.append(Document(content=content, meta={"source": filepath, "type": "markdown"}))
+            except Exception as e:
+                logger.error(f"Failed to read {filepath}: {e}")
+                
+        if docs:
+            self.document_store.write_documents(docs)
+            logger.info(f"Indexed {len(docs)} files from {dir_path}")
+            
         return len(docs)

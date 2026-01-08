@@ -1,0 +1,19 @@
+[
+  {
+    "part_number":1000135,
+    "url":"https:\/\/www.sick.com\/sk\/en\/catalog\/archive\/wiv-ls\/p\/p634194?tab=detail",
+    "name":"WIV-LS",
+    "description":"N\/A",
+    "category":"N\/A",
+    "actual_part_no":"1000135",
+    "price_teaser":"N\/A",
+    "phased_out":"Yes",
+    "successor_product":"N\/A",
+    "certificates":"",
+    "specifications":"{\"header\": \"value\", \"Unit weight\": \"0.110 Kilograms\", \"Net unit weight\": \"0.11 Kilograms\", \"Unit volume\": \"216 Cubic Centimetres (cm\\u00b3)\", \"Country of origin\": \"Germany\"}",
+    "suitable_accessories":"",
+    "image_urls":"https:\/\/cdn.sick.com\/media\/pim\/product.png",
+    "local_image_paths":"test_output\\images\\1000135_0.png",
+    "pdf_url":"https:\/\/www.sick.com\/media\/pdf\/4\/94\/194\/dataSheet_WIV-LS_1000135_en.pdf"
+  }
+]

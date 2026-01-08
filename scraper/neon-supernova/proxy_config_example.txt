@@ -1,0 +1,63 @@
+# Proxy Configuration Guide for SICK Scraper
+# ============================================
+
+# OPTION 1: Free Proxy Lists (Less Reliable)
+# ------------------------------------------
+# You can find free proxies from sources like:
+# - https://www.proxy-list.download/
+# - https://free-proxy-list.net/
+# - https://www.sslproxies.org/
+
+# Example free proxies (these may not work - test first):
+# http://103.152.112.120:80
+# http://185.217.136.67:1337
+# http://45.201.134.87:8080
+
+# OPTION 2: Premium Proxy Services (Recommended)
+# ----------------------------------------------
+# For reliable scraping, consider paid services:
+#
+# 1. Bright Data (formerly Luminati)
+#    - Premium residential proxies
+#    - Format: http://username:password@brd.superproxy.io:22225
+#
+# 2. SmartProxy
+#    - Rotating residential proxies
+#    - Format: http://username:password@gate.smartproxy.com:7000
+#
+# 3. Oxylabs
+#    - Data center and residential proxies
+#    - Format: http://username:password@pr.oxylabs.io:7777
+#
+# 4. Scra perAPI
+#    - Web scraping API with built-in proxies
+#    - Format: http://scraperapi:API_KEY@proxy-server.scraperapi.com:8001
+
+# USAGE IN SCRAPER:
+# -----------------
+# Edit sick_scraper.py and uncomment the proxy configuration:
+#
+# proxies = [
+#     "http://username:password@proxy1.example.com:8080",
+#     "http://username:password@proxy2.example.com:8080",
+#     "http://username:password@proxy3.example.com:8080"
+# ]
+# scraper = SickScraper('part_numbers.csv', proxies=proxies)
+
+# TESTING YOUR PROXIES:
+# --------------------
+# Test your proxies before scraping:
+# import requests
+# proxy = "http://your-proxy:port"
+# try:
+#     r = requests.get("https://api.ipify.org", proxies={"http": proxy, "https": proxy}, timeout=5)
+#     print(f"Proxy IP: {r.text}")
+# except Exception as e:
+#     print(f"Proxy failed: {e}")
+
+# NOTES:
+# ------
+# - The scraper rotates proxies every 5 products automatically
+# - User-agent is randomized for each request
+# - Delays between requests are randomized (3-7 seconds)
+# - All these features help avoid IP blocking

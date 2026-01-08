@@ -1,0 +1,93 @@
+[
+  {
+    "company_name": "ALSAKR for Trading & Manufacturing",
+    "contact_name": null,
+    "email": "info@topgroupco.com",
+    "phone": "+2 0102 108 0088",
+    "location": {
+      "lat": null,
+      "lon": null,
+      "address": "Plot VH, Industrial area C3, , 10th of Ramadan, Egypt , Fax: +2 0554 380 909 , http://www.topgroupco.com , Factory automation , Logistics automation, Egypt"
+    },
+    "brands": [
+      "ABB",
+      "SICK",
+      "SKF",
+      "Siemens"
+    ],
+    "categories": [],
+    "sector": [
+      "Manufacturing",
+      "Energy"
+    ],
+    "verified": true,
+    "cr_number": null,
+    "website": "http://www.topgroupco.com/"
+  },
+  {
+    "company_name": "ASSET For Industrial & Energy Solutions LLC",
+    "contact_name": null,
+    "email": "info@asset-industrial.com",
+    "phone": "+20 2 2542 4561",
+    "location": {
+      "lat": null,
+      "lon": null,
+      "address": "Building No. 8 , Street 295, New Maadi, , P.O. Box 11742 , Cairo, Egypt , https://asset-industrial.com , Business field: , Process automation, Egypt"
+    },
+    "brands": [
+      "SICK"
+    ],
+    "categories": [
+      "Industrial Automation",
+      "Sensors"
+    ],
+    "sector": [],
+    "verified": true,
+    "cr_number": null,
+    "website": null
+  },
+  {
+    "company_name": "Attest, Arabian Technical Trading Est.",
+    "contact_name": null,
+    "email": "sheriff@attest.com.sa",
+    "phone": "+966 13 8341924",
+    "location": {
+      "lat": null,
+      "lon": null,
+      "address": "506, Al - Jomaih Building King Kalid Road P.O. Box 8415 , Dammam 31482, Saudi Arabia , Fax: +966 13 8342071 , http://www.attest.com.sa , Process Automation / Analyzers, Saudi Arabia"
+    },
+    "brands": [
+      "SICK"
+    ],
+    "categories": [
+      "Industrial Automation",
+      "Sensors"
+    ],
+    "sector": [],
+    "verified": true,
+    "cr_number": null,
+    "website": null
+  },
+  {
+    "company_name": "Technical Industrial Automation Est. (TIA)",
+    "contact_name": null,
+    "email": "samo@tia-automation.com",
+    "phone": null,
+    "location": {
+      "lat": null,
+      "lon": null,
+      "address": "62nd St - Phase 4, 1st Industrial Area , Jeddah 21494 P.O. Box 17808 Saudi Arabia , +966 12 636 3642 , +966 12 636 3658 , +966 50 065 7715 , Business field: , Factory automation, Saudi Arabia"
+    },
+    "brands": [
+      "SICK"
+    ],
+    "categories": [
+      "Industrial Automation",
+      "Sensors"
+    ],
+    "sector": [],
+    "verified": true,
+    "cr_number": null,
+    "website": null
+  }
+]

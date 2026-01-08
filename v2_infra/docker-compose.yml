@@ -1,101 +1,193 @@
 version: '3.8'
 
 services:
-  # 1. The Brain (Ollama)
+  # 1. AI & Search Stack
+  # ----------------------------------------
   ollama:
     image: ollama/ollama:latest
     container_name: alsakr-ollama
     restart: unless-stopped
     volumes:
       - ../ollama_data:/root/.ollama
-    healthcheck:
-      test: [ "CMD-SHELL", "timeout 1 bash -c '</dev/tcp/localhost/11434' || exit 1" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
     networks:
       - industry-net
 
-  # 2. Vector Database (PostgreSQL + PgVector)
-  postgres:
-    image: pgvector/pgvector:pg16
-    container_name: alsakr-postgres
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: alsakr-es
     restart: unless-stopped
     environment:
-      POSTGRES_DB: vector_db
-      POSTGRES_USER: ${POSTGRES_USER:-admin}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-Anas231#Bkar3110}
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+      - bootstrap.memory_lock=true
     volumes:
-      - ../postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U admin -d vector_db" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - ../es_data:/usr/share/elasticsearch/data
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
     networks:
       - industry-net
-    deploy:
-      resources:
-        limits:
-          memory: 1G
 
-  # 3. Automation (n8n)
-  n8n:
-    image: n8nio/n8n:latest
-    container_name: alsakr-n8n
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: alsakr-qdrant
+    restart: unless-stopped
+    volumes:
+      - ../qdrant_data:/qdrant/storage
+    networks:
+      - industry-net
+
+  # 2. ERPNext / Frappe Stack (Database & Application)
+  # ----------------------------------------
+  mariadb:
+    image: mariadb:10.6
+    container_name: alsakr-mariadb
+    restart: unless-stopped
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --skip-character-set-client-handshake
+      - --skip-innodb-read-only-compressed # specific for maria 10.6+
     environment:
-      - N8N_HOST=n8n.local
-      - N8N_PORT=5678
-      - DB_TYPE=postgresdb
-      - DB_POSTGRESDB_DATABASE=n8n_db
-      - DB_POSTGRESDB_HOST=postgres
-      - DB_POSTGRESDB_PORT=5432
-      - DB_POSTGRESDB_USER=${POSTGRES_USER:-admin}
-      - DB_POSTGRESDB_PASSWORD=${POSTGRES_PASSWORD:-Anas231#Bkar3110}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-admin}
+      MYSQL_DATABASE: _auth # Placeholder
     volumes:
-      - ../n8n_data:/home/node/.n8n
-    ports:
-      - "5678:5678"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    deploy:
-      resources:
-        limits:
-          memory: 1G
+      - ../mariadb_data:/var/lib/mysql
     networks:
       - industry-net
 
-  # 4. The Frontend (Open WebUI)
-  open-webui:
-    image: ghcr.io/open-webui/open-webui:main
-    container_name: alsakr-open-webui
+  redis-queue:
+    image: redis:6.2-alpine
+    container_name: alsakr-redis-queue
+    restart: unless-stopped
+    networks:
+      - industry-net
+
+  redis-cache:
+    image: redis:6.2-alpine
+    container_name: alsakr-redis-cache
+    restart: unless-stopped
+    networks:
+      - industry-net
+
+  redis-socketio:
+    image: redis:6.2-alpine
+    container_name: alsakr-redis-socketio
+    restart: unless-stopped
+    networks:
+      - industry-net
+
+  erpnext-backend:
+    image: frappe/erpnext:v15.8.0
+    container_name: alsakr-erpnext-backend
+    restart: unless-stopped
+    deploy:
+      restart_policy:
+        condition: on-failure
+    environment:
+      - DB_HOST=mariadb
+      - DB_PORT=3306
+      - DB_PASSWORD=${DB_PASSWORD:-admin}
+      - REDIS_CACHE=redis-cache:6379
+      - REDIS_QUEUE=redis-queue:6379
+      - REDIS_SOCKETIO=redis-socketio:6379
+      - SOCKETIO_PORT=9000
+    volumes:
+      - ../frappe_sites:/home/frappe/frappe-bench/sites
+      - ../frappe_logs:/home/frappe/frappe-bench/logs
+    networks:
+      - industry-net
+    depends_on:
+      - mariadb
+      - redis-queue
+      - redis-cache
+      - redis-socketio
+
+  erpnext-frontend:
+    image: frappe/erpnext:v15.8.0
+    container_name: alsakr-erpnext-frontend
+    restart: unless-stopped
+    command: nginx-entrypoint
+    environment:
+      - BACKEND=erpnext-backend:8000
+      - SOCKETIO=erpnext-backend:9000
+      - FRAPPE_SITE_NAME_HEADER=Host
+      - SKIP_NGINX_TEMPLATE_GENERATION=0
+      - UPSTREAM_REAL_IP_ADDRESS=0.0.0.0/0
+      - UPSTREAM_REAL_IP_HEADER=X-Forwarded-For
+      - UPSTREAM_REAL_IP_RECURSIVE=on
+      - PROXY_READ_TIMEOUT=120
+      - CLIENT_MAX_BODY_SIZE=50m
+    volumes:
+      - ../frappe_sites:/home/frappe/frappe-bench/sites
+      - ../frappe_logs:/home/frappe/frappe-bench/logs
+    networks:
+      - industry-net
+    depends_on:
+      - erpnext-backend
+
+  erpnext-worker-default:
+    image: frappe/erpnext:v15.8.0
+    container_name: alsakr-erpnext-worker-d
+    restart: unless-stopped
+    command: worker-default
+    environment:
+      - DB_HOST=mariadb
+      - DB_PORT=3306
+      - DB_PASSWORD=${DB_PASSWORD:-admin}
+      - REDIS_CACHE=redis-cache:6379
+      - REDIS_QUEUE=redis-queue:6379
+      - REDIS_SOCKETIO=redis-socketio:6379
+    volumes:
+      - ../frappe_sites:/home/frappe/frappe-bench/sites
+      - ../frappe_logs:/home/frappe/frappe-bench/logs
+    networks:
+      - industry-net
+    depends_on:
+      - erpnext-backend
+
+  erpnext-schedule:
+    image: frappe/erpnext:v15.8.0
+    container_name: alsakr-erpnext-schedule
+    restart: unless-stopped
+    command: schedule
+    environment:
+      - DB_HOST=mariadb
+      - DB_PORT=3306
+      - DB_PASSWORD=${DB_PASSWORD:-admin}
+      - REDIS_CACHE=redis-cache:6379
+      - REDIS_QUEUE=redis-queue:6379
+      - REDIS_SOCKETIO=redis-socketio:6379
+    volumes:
+      - ../frappe_sites:/home/frappe/frappe-bench/sites
+      - ../frappe_logs:/home/frappe/frappe-bench/logs
+    networks:
+      - industry-net
+    depends_on:
+      - erpnext-backend
+
+  # 3. Custom App Stack
+  # ----------------------------------------
+  frontend:
+    build:
+      context: ../v2_project/frontend
+      dockerfile: Dockerfile
+    container_name: alsakr-frontend
     restart: always
     environment:
-      - OLLAMA_BASE_URL=http://ollama:11434
-      - WEBUI_SECRET_KEY=${NEXTAUTH_SECRET:-pYn8X8vA4j2M5K9S7wG3R1L6Q0T2B5V4}
-    volumes:
-      - ../open-webui_data:/app/backend/data
+      - NEXT_PUBLIC_API_URL=https://api.app.alsakronline.com
+      - NEXT_PUBLIC_ERP_URL=https://erp.app.alsakronline.com
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-changeme}
+      - NEXTAUTH_URL=https://app.alsakronline.com
     ports:
-      - "3000:8080"
-    depends_on:
-      ollama:
-        condition: service_healthy
-    deploy:
-      resources:
-        limits:
-          memory: 2G
+      - "3000:3000"
     networks:
       - industry-net
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+    depends_on:
+      - backend
 
-  # 5. The Agent Swarm / Haystack Backend
   backend:
     build:
       context: ../v2_project/backend
@@ -104,37 +196,43 @@ services:
     restart: always
     environment:
       - OLLAMA_HOST=http://ollama:11434
-      - POSTGRES_CONN_STR=postgresql://admin:Anas231#Bkar3110@postgres:5432/vector_db
-      - ERPNEXT_URL=${ERPNEXT_URL}
-      - ERPNEXT_API_KEY=${ERPNEXT_API_KEY}
-      - ERPNEXT_API_SECRET=${ERPNEXT_API_SECRET}
-    depends_on:
-      postgres:
-        condition: service_healthy
-      ollama:
-        condition: service_healthy
-    ports:
-      - "8000:8000"
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    deploy:
-      resources:
-        limits:
-          memory: 2G
+      - ES_HOST=elasticsearch
+      - QDRANT_HOST=qdrant
+      - ERPNEXT_URL=http://erpnext-backend:8000
     volumes:
       - ../v2_project/backend:/app
       - ../Data:/data
+    ports:
+      - "8000:8000"
+    networks:
+      - industry-net
+    depends_on:
+      - ollama
+      - elasticsearch
+      - qdrant
+
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: alsakr-n8n
+    restart: unless-stopped
+    environment:
+      - N8N_HOST=workflows.app.alsakronline.com
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=https
+      - WEBHOOK_URL=https://workflows.app.alsakronline.com/
+    volumes:
+      - ../n8n_data:/home/node/.n8n
+    ports:
+      - "5678:5678"
     networks:
       - industry-net
 
-  # 6. Reverse Proxy & SSL (Caddy)
+  # 4. Proxy
+  # ----------------------------------------
   caddy:
     image: caddy:latest
     container_name: alsakr-proxy
-    restart: unless-stopped
+    restart: always
     ports:
       - "80:80"
       - "443:443"
@@ -144,9 +242,6 @@ services:
       - ../caddy_config:/config
     networks:
       - industry-net
-
-# Named volumes removed in favor of host paths
-
 
 networks:
   industry-net:

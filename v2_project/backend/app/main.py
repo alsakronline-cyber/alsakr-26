@@ -10,11 +10,17 @@ pipeline = HaystackPipeline()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Load initial dummy data for testing
+    # 1. Load initial dummy data
     pipeline.index_data([
         {"content": "Al Sakr Online is an industrial marketplace for SICK sensors.", "meta": {"source": "manual"}},
         {"content": "The SICK IME12 is an inductive proximity sensor with 4mm range.", "meta": {"sku": "IME12"}}
     ])
+    
+    # 2. Index Data from Volume
+    data_dir = "/data" # Mapped to ../Data
+    count = pipeline.index_directory(data_dir)
+    print(f"Indexed {count} documents from {data_dir}")
+    
     yield
     print("Shutting down...")
 
@@ -25,7 +31,7 @@ class QueryRequest(BaseModel):
 
 @app.get("/")
 def read_root():
-    return {"status": "online", "engine": "Haystack + Ollama"}
+    return {"status": "online", "engine": "Haystack + Ollama", "erp_status": "disconnected"}
 
 @app.post("/api/chat")
 def chat(request: QueryRequest):

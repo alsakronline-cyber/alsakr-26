@@ -1,0 +1,143 @@
+services:
+  # 1. The Brain (Ollama)
+  ollama:
+    image: ollama/ollama:latest
+    container_name: alsakr-ollama
+    restart: unless-stopped
+    volumes:
+      - ollama_data:/root/.ollama
+    deploy:
+      resources:
+        limits:
+          cpus: '2.00'
+          memory: 6G # Strict Limit
+    networks:
+      - industry-net
+
+  # 2. The Search Engine (Elasticsearch)
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: alsakr-es
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g" # HEAP LIMIT 1GB (Critical for VPS)
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+    networks:
+      - industry-net
+    ports:
+      - "9200:9200"
+
+  # 3. The Vector Memory (Qdrant)
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: alsakr-qdrant
+    volumes:
+      - qdrant_data:/qdrant/storage
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    networks:
+      - industry-net
+    ports:
+      - "6333:6333"
+
+  # 4. The CRM & Auth (PocketBase)
+  pocketbase:
+    image: ghcr.io/muchobien/pocketbase:latest
+    container_name: alsakr-pb
+    volumes:
+      - pb_data:/pb/pb_data
+    ports:
+      - "8090:8090"
+    deploy:
+      resources:
+        limits:
+          memory: 500M
+    networks:
+      - industry-net
+
+  # 5. Automation (n8n)
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: alsakr-n8n
+    environment:
+      - N8N_HOST=n8n.local
+      - N8N_PORT=5678
+    volumes:
+      - n8n_data:/home/node/.n8n
+    ports:
+      - "5678:5678"
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    networks:
+      - industry-net
+
+  # 6. The Command Center (Frontend)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=https://app.alsakronline.com
+        - NEXT_PUBLIC_PB_URL=https://app.alsakronline.com/pb
+    container_name: alsakr-frontend
+    environment:
+      - NEXTAUTH_URL=https://app.alsakronline.com
+      - NEXTAUTH_SECRET=pYn8X8vA4j2M5K9S7wG3R1L6Q0T2B5V4 # Secure generated secret
+      - PB_INTERNAL_URL=http://pocketbase:8090
+      - NEXT_PUBLIC_PB_URL=https://app.alsakronline.com/pb # For client-side if needed
+    ports:
+      - "3000:3000"
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    networks:
+      - industry-net
+
+  # 7. The Agent Swarm (Backend)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: alsakr-backend
+    environment:
+      - ES_HOST=elasticsearch
+      - OLLAMA_HOST=http://ollama:11434
+      - PB_URL=http://pocketbase:8090
+      - QDRANT_HOST=qdrant
+    depends_on:
+      - elasticsearch
+      - ollama
+      - pocketbase
+    ports:
+      - "8000:8000"
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+    volumes:
+      - ./backend:/app
+    networks:
+      - industry-net
+
+volumes:
+  ollama_data:
+  es_data:
+  qdrant_data:
+  pb_data:
+  n8n_data:
+
+
+networks:
+  industry-net:
+    driver: bridge

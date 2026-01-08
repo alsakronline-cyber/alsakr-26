@@ -3,10 +3,13 @@
 }
 
 app.alsakronline.com {
-    # Open WebUI Main Interface
-    reverse_proxy open-webui:8080
+    reverse_proxy frontend:3000
+    encode gzip
+}
 
-    encode gzip zstd
+erp.app.alsakronline.com {
+    reverse_proxy erpnext-frontend:8080
+    encode gzip
 }
 
 api.app.alsakronline.com {

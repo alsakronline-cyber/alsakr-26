@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { CheckCircle2, XCircle, Loader2, Mail } from "lucide-react";
 import Link from "next/link";
-import PocketBase from "pocketbase";
 
 export default function VerifyEmailPage() {
     const router = useRouter();
@@ -24,27 +23,17 @@ export default function VerifyEmailPage() {
             }
 
             try {
-                const pb = new PocketBase(process.env.NEXT_PUBLIC_PB_URL || "http://127.0.0.1:8090");
+                // TODO: Implement ERPNext email verification
+                // For now, we simulate a delay then error as it's not implemented
+                await new Promise(resolve => setTimeout(resolve, 2000));
 
-                // Confirm email verification
-                await pb.collection("users").confirmVerification(token);
+                setStatus("error");
+                setMessage("Email verification is currently being migrated to the new system. Please contact support.");
 
-                setStatus("success");
-                setMessage("Your email has been successfully verified!");
-
-                // Redirect to login after 3 seconds
-                setTimeout(() => {
-                    router.push("/auth/login?verified=true");
-                }, 3000);
             } catch (error: any) {
                 console.error("Verification error:", error);
                 setStatus("error");
-
-                if (error.status === 404) {
-                    setMessage("Verification link has expired or is invalid. Please request a new one.");
-                } else {
-                    setMessage("Verification failed. Please try again or contact support.");
-                }
+                setMessage("Verification failed. Please try again or contact support.");
             }
         };
 

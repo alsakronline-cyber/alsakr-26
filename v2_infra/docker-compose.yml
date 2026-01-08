@@ -107,7 +107,6 @@ services:
     image: frappe/erpnext:version-15
     container_name: alsakr-erpnext-frontend
     restart: unless-stopped
-    command: nginx-entrypoint
     environment:
       - BACKEND=erpnext-backend:8000
       - SOCKETIO=erpnext-backend:9000
